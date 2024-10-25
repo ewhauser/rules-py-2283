@@ -1,0 +1,56 @@
+bazel_dep(name = "apple_support", version = "1.17.1")
+bazel_dep(name = "aspect_bazel_lib", version = "2.9.3")
+bazel_dep(name = "bazel_features", version = "1.19.0")
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "gazelle", repo_name = "bazel_gazelle", version = "0.39.1")
+bazel_dep(name = "googleapis", version = "0.0.0-20240819-fe8ba054a")
+bazel_dep(name = "protobuf", version = "28.0")
+bazel_dep(name = "platforms", version = "0.0.10")
+bazel_dep(name = "rules_apple", version = "3.9.2")
+bazel_dep(name = "rules_pkg", version = "1.0.1")
+bazel_dep(name = "rules_proto", version = "6.0.2")
+bazel_dep(name = "rules_python", version = "0.37.0")
+bazel_dep(name = "rules_python_gazelle_plugin", version = "0.37.0")
+bazel_dep(name = "rules_swift", version = "2.1.1")
+bazel_dep(name = "rules_uv", version = "0.35.0")
+bazel_dep(name = "toolchains_protoc", version = "0.3.3")
+
+## aspect_bazel_lib
+bazel_lib_toolchains = use_extension("@aspect_bazel_lib//lib:extensions.bzl", "toolchains")
+bazel_lib_toolchains.copy_directory()
+bazel_lib_toolchains.copy_to_directory()
+bazel_lib_toolchains.coreutils()
+bazel_lib_toolchains.expand_template()
+bazel_lib_toolchains.jq()
+bazel_lib_toolchains.tar()
+bazel_lib_toolchains.yq()
+bazel_lib_toolchains.zstd()
+use_repo(
+    bazel_lib_toolchains,
+    "bsd_tar_toolchains",
+    "copy_directory_toolchains",
+    "copy_to_directory_toolchains",
+    "coreutils_toolchains",
+    "expand_template_toolchains",
+    "jq_toolchains",
+    "yq_toolchains",
+)
+
+## python
+PYTHON_VERSION = "3.11.4"
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    is_default = True,
+    python_version = PYTHON_VERSION,
+)
+use_repo(python, python = "python_versions")
+
+pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+pip.parse(
+    hub_name = "pypi",
+    python_version = PYTHON_VERSION,
+    requirements_lock = "//:requirements.txt",
+    requirements_darwin = "//:requirements.txt.darwin",
+)
+use_repo(pip, "pypi")

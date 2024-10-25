@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Bazel looks for this script in the local tools/bazel
+# we can use it to execute commands prior to running bazel
+# https://github.com/bazelbuild/bazel/blob/7be6ec66422e23705a8d8345675ee4c15bad3882/scripts/packages/bazel.sh#L79
+
+# This configures git to look for hooks in the .githooks directory instead of .git/hooks. The reason that we configure
+# this here is so that developers don't have to do anything on their machines in order for the pre-commit hooks to
+# work
+cmd="$1"
+
+WORKSPACE_DIR="${PWD}"
+while [[ "${WORKSPACE_DIR}" != / ]]; do
+  if [[ -e "${WORKSPACE_DIR}/WORKSPACE" ]]; then
+    break
+  fi
+  WORKSPACE_DIR="$(dirname "${WORKSPACE_DIR}")"
+done
+readonly WORKSPACE_DIR
+
+# Disable Datadog metrics
+set -eu
+
+bashextra=""
+if [[ "$cmd" == "run" ]]; then
+  export DD_DOGSTATSD_DISABLE="true"
+  export DATADOG_TRACING_ENABLED="false"
+
+  # If there is a .env file in the current directory, then use it
+  if [[ -f "$(pwd)/.env" ]]; then
+    echo "Using .env file in $(pwd)/.env"
+    bashextra="set -a; source $(pwd)/.env; "
+  # Otherwise try to use the one in the root of the workspace
+  elif [[ -f "${WORKSPACE_DIR}/.env" ]]; then
+    echo "Using .env file in ${WORKSPACE_DIR}/.env"
+    bashextra="set -a; source ${WORKSPACE_DIR}/.env; "
+  fi
+fi
+
+# BAZEL_REAL is exported by the wrapper script
+# https://github.com/bazelbuild/bazel/blob/7be6ec66422e23705a8d8345675ee4c15bad3882/scripts/packages/bazel.sh#L64
+cmd="${bashextra}exec -a \"\$0\" ${BAZEL_REAL} \"\$@\""
+bash -c "$cmd" "$0" "$@"
